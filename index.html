@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora Solar Fotovoltaica | Dimensionamiento Off-Grid</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome para iconos limpios -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            solar: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            },
+            slate: {
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .print-shadow-none {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+    }
+    /* Animación suave para barras de progreso */
+    .bar-transition {
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Notificación Toast (Reemplaza cualquier uso de alert) -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Encabezado Principal -->
+  <header class="bg-slate-900 text-white shadow-lg border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-md shadow-amber-500/20 shrink-0">
+          <i class="fa-solid fa-solar-panel text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Calculadora Solar Off-Grid</h1>
+            <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Técnica Tecnológica · Mr. Leo
+            </span>
+          </div>
+          <p class="text-slate-400 text-xs sm:text-sm mt-0.5">
+            Investigación de cargas en el entorno y dimensionamiento fotovoltaico
+          </p>
+        </div>
+      </div>
+
+      <!-- Botones de Acción Rápida -->
+      <div class="flex flex-wrap items-center gap-2 no-print">
+        <button onclick="resetCalculator()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition border border-slate-700 cursor-pointer">
+          <i class="fa-solid fa-trash-arrow-up text-amber-400"></i>
+          <span>Limpiar Todo</span>
+        </button>
+        <button onclick="copySummaryToClipboard()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition border border-slate-700 cursor-pointer">
+          <i class="fa-regular fa-copy text-emerald-400"></i>
+          <span>Copiar Resumen</span>
+        </button>
+        <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition shadow-sm cursor-pointer">
+          <i class="fa-solid fa-print"></i>
+          <span>Imprimir / Reporte</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    
+    <!-- Encabezado de Práctica / Datos del Estudiante (Útil para impresión o entrega en aula) -->
+    <section class="mb-6 bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 print-shadow-none">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+            <i class="fa-solid fa-magnifying-glass-chart text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Actividad de Investigación: Auditoría Energética del Entorno</h2>
+            <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+              Observa tu alrededor (ej. laboratorio de computación o aula), cuenta cada equipo tecnológico, <strong>investiga su consumo en Watts (W)</strong> y estima sus <strong>horas de uso diario</strong>. El sistema calculará cuántos paneles de <strong>500 W</strong> y baterías GEL de <strong>100 Ah</strong> se necesitan.
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0 lg:w-96">
+          <div>
+            <label for="student-name" class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Estudiante / Grupo</label>
+            <input type="text" id="student-name" placeholder="Ej. Grupo 1 - Ana y Carlos" class="w-full rounded-xl border border-slate-200 bg-slate-50 focus:bg-white px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label for="student-course" class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Curso / Ambiente</label>
+            <input type="text" id="student-course" placeholder="Ej. 5to Sec. - Lab. Computación" class="w-full rounded-xl border border-slate-200 bg-slate-50 focus:bg-white px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid Principal: Izquierda (Equipos + Config) / Derecha (Resultados) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      
+      <!-- COLUMNA IZQUIERDA (7 columnas en desktop) -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- 1. TABLA DINÁMICA DE EQUIPOS ELÉCTRICOS -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden print-shadow-none">
+          <div class="p-5 sm:p-6 border-b border-slate-100">
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
+              <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 inline-flex items-center justify-center text-[11px]">1</span>
+              Cuadro de Cargas Investigadas
+            </span>
+            <h2 class="text-lg font-bold text-slate-900">Registro de Equipos Tecnológicos</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Ingresa cada equipo que observaste junto con su potencia investigada (W) y horas diarias de uso.</p>
+          </div>
+
+          <!-- Formulario claro para ingresar cada equipo -->
+          <form onsubmit="handleAddApplianceSubmit(event)" class="p-4 sm:p-5 bg-slate-50/90 border-b border-slate-200/80 no-print">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div class="sm:col-span-5">
+                <label for="new-name" class="block text-xs font-semibold text-slate-700 mb-1">Nombre del equipo</label>
+                <input type="text" id="new-name" required placeholder="Ej. Monitor LED, CPU, Proyector..." class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+              <div class="grid grid-cols-3 sm:col-span-7 gap-2.5 items-end">
+                <div>
+                  <label for="new-qty" class="block text-xs font-semibold text-slate-700 mb-1">Cantidad</label>
+                  <input type="number" id="new-qty" required min="1" step="1" value="1" class="w-full text-center rounded-xl border border-slate-300 bg-white px-2 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label for="new-watts" class="block text-xs font-semibold text-slate-700 mb-1">Potencia (W)</label>
+                  <input type="number" id="new-watts" required min="1" step="any" placeholder="Ej. 65" class="w-full text-center rounded-xl border border-slate-300 bg-white px-2 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label for="new-hours" class="block text-xs font-semibold text-slate-700 mb-1">Horas/día</label>
+                  <input type="number" id="new-hours" required min="0.1" max="24" step="0.1" placeholder="Ej. 6" class="w-full text-center rounded-xl border border-slate-300 bg-white px-2 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-end">
+              <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition shadow-sm cursor-pointer">
+                <i class="fa-solid fa-plus text-amber-400"></i>
+                <span>Agregar equipo</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Tabla Responsiva -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                  <th class="py-3 px-4 font-semibold min-w-[160px]">Equipo / Carga</th>
+                  <th class="py-3 px-2 font-semibold text-center w-20">Cant.</th>
+                  <th class="py-3 px-2 font-semibold text-center w-28">Potencia (W)</th>
+                  <th class="py-3 px-2 font-semibold text-center w-28">Horas/día</th>
+                  <th class="py-3 px-4 font-semibold text-right w-28">Energía/día</th>
+                  <th class="py-3 px-3 text-center w-12 no-print"></th>
+                </tr>
+              </thead>
+              <tbody id="appliances-tbody" class="divide-y divide-slate-100 text-sm">
+                <!-- Filas dinámicas generadas por JS (inicia vacío) -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Estado vacío instructivo -->
+          <div id="empty-state" class="p-8 sm:p-10 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-500 flex items-center justify-center mx-auto mb-3.5">
+              <i class="fa-solid fa-computer text-2xl"></i>
+            </div>
+            <h3 class="text-slate-800 font-bold text-base">Tu lista de equipos está vacía</h3>
+            <p class="text-slate-500 text-xs sm:text-sm max-w-md mx-auto mt-1.5 leading-relaxed">
+              Observa a tu alrededor en el laboratorio o aula, cuenta cuántos equipos tecnológicos hay (computadoras, monitores, proyectores, routers, luces, etc.), <strong>investiga cuántos Watts consume cada uno</strong> y agrégalos usando el formulario de arriba.
+            </p>
+          </div>
+
+          <!-- Fila de Totales de Carga -->
+          <div class="bg-slate-900 text-white px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-6">
+              <div>
+                <span class="text-xs text-slate-400 block">Potencia Simultánea Máx.</span>
+                <span id="total-power-display" class="text-base sm:text-lg font-bold text-amber-400">0 W</span>
+              </div>
+              <div class="h-8 w-px bg-slate-700"></div>
+              <div>
+                <span class="text-xs text-slate-400 block">Consumo Total Diario</span>
+                <div class="flex items-baseline gap-2">
+                  <span id="total-wh-display" class="text-base sm:text-lg font-bold text-emerald-400">0 Wh/día</span>
+                  <span id="total-kwh-display" class="text-xs text-slate-300">(0.00 kWh/día)</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-400 hidden sm:block">
+              <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i>
+              Cálculo automático en tiempo real
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CONFIGURACIÓN DEL SISTEMA SOLAR (PREDETERMINADO: PANEL 500W + BATERÍA 100Ah GEL) -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 print-shadow-none">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+            <div>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">
+                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[11px]">2</span>
+                Equipamiento Base Disponible
+              </span>
+              <h2 class="text-lg font-bold text-slate-900">Parámetros Predeterminados del Taller</h2>
+              <p class="text-xs text-slate-500 mt-0.5">El sistema ya está configurado con los paneles solares y baterías disponibles para el proyecto.</p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-center">
+              <i class="fa-solid fa-lock text-[10px]"></i> Preconfigurado
+            </span>
+          </div>
+
+          <!-- Tarjetas Destacadas del Equipamiento Base Predeterminado -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <!-- Panel Predeterminado 500W -->
+            <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
+                <i class="fa-solid fa-solar-panel text-lg"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">Panel Solar Disponible</span>
+                <div class="text-lg font-extrabold text-slate-900">500 W <span class="text-xs font-medium text-slate-600">(500 Wp)</span></div>
+                <span class="text-xs text-slate-600">Radiación base: <strong>5.5 HSP/día</strong> (Tarija)</span>
+              </div>
+            </div>
+
+            <!-- Batería Predeterminada 100Ah GEL -->
+            <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <i class="fa-solid fa-car-battery text-lg"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">Batería Disponible</span>
+                <div class="text-lg font-extrabold text-slate-900">100 Ah · 12V <span class="text-xs font-medium text-slate-600">(Tipo GEL)</span></div>
+                <span class="text-xs text-slate-600">Descarga segura (DoD): <strong>50%</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen rápido de parámetros fijos + botón desplegable para ajustes avanzados -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span><i class="fa-solid fa-cloud-sun text-slate-400 mr-1"></i>Autonomía: <strong id="summary-autonomy">1 día</strong></span>
+              <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Banco: <strong id="summary-voltage">12V (Auto)</strong></span>
+              <span><i class="fa-solid fa-gauge-high text-emerald-500 mr-1"></i>Eficiencia (PR): <strong id="summary-eff">80%</strong></span>
+            </div>
+            <button type="button" onclick="toggleAdvancedParams()" class="no-print text-amber-700 hover:text-amber-800 font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-sliders"></i>
+              <span id="advanced-toggle-text">Ajustar parámetros técnicos</span>
+            </button>
+          </div>
+
+          <!-- Controles Técnicos Desplegables (Ocultos por defecto para mantener limpio el Paso 2) -->
+          <div id="advanced-params-panel" class="hidden mt-4 pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4 no-print">
+            <!-- Potencia del Panel Solar -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <label for="input-panel-watts" class="text-xs font-semibold text-slate-700 block mb-1">Potencia por Panel (W)</label>
+              <input type="number" id="input-panel-watts" value="500" min="50" max="800" step="10" oninput="calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <!-- Capacidad Batería GEL (12V) -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <label for="input-battery-ah" class="text-xs font-semibold text-slate-700 block mb-1">Capacidad Batería GEL 12V (Ah)</label>
+              <input type="number" id="input-battery-ah" value="100" min="20" max="1000" step="10" oninput="calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <!-- Horas Solares Pico (HSP) -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <label for="input-hsp" class="text-xs font-semibold text-slate-700 block mb-1">Horas Solares Pico (HSP)</label>
+              <input type="number" id="input-hsp" value="5.5" min="1" max="10" step="0.1" oninput="calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <!-- Días de Autonomía -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <label for="input-autonomy" class="text-xs font-semibold text-slate-700 block mb-1">Días de Autonomía</label>
+              <select id="input-autonomy" onchange="calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="1" selected>1 día (Uso diario escolar)</option>
+                <option value="1.5">1.5 días</option>
+                <option value="2">2 días (Respaldo nublado)</option>
+                <option value="3">3 días</option>
+              </select>
+            </div>
+
+            <!-- Voltaje del Sistema -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <div class="flex items-center justify-between mb-1">
+                <label for="input-voltage" class="text-xs font-semibold text-slate-700">Voltaje del Banco (V)</label>
+                <span id="voltage-suggestion-badge" class="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">Auto: 12V</span>
+              </div>
+              <select id="input-voltage" onchange="userChangedVoltage=true; calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="12" selected>12 V (Sistemas pequeños)</option>
+                <option value="24">24 V (Sistemas medianos)</option>
+                <option value="48">48 V (Sistemas grandes)</option>
+              </select>
+            </div>
+
+            <!-- Tecnología de Batería (DoD) y Eficiencia -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+              <div class="flex items-center justify-between mb-1">
+                <label for="input-battery-type" class="text-xs font-semibold text-slate-700">Tipo Batería (DoD)</label>
+                <span id="dod-badge" class="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">DoD: 50%</span>
+              </div>
+              <select id="input-battery-type" onchange="calculateSystem()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="0.50" selected>Batería GEL / AGM (50% DoD)</option>
+                <option value="0.80">Litio LiFePO4 (80% DoD)</option>
+              </select>
+            </div>
+
+            <!-- Eficiencia Global -->
+            <div class="sm:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200/70 flex items-center justify-between gap-3">
+              <label for="input-efficiency" class="text-xs font-semibold text-slate-700">Eficiencia Global del Sistema (PR)</label>
+              <div class="flex items-center gap-2.5">
+                <input type="range" id="input-efficiency" min="65" max="95" value="80" oninput="calculateSystem()" class="w-28 accent-amber-500 cursor-pointer">
+                <span id="efficiency-label" class="text-xs font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded">80%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. SECCIÓN EDUCATIVA: ¿CÓMO SE CALCULA? -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 print-shadow-none">
+          <button onclick="toggleFormulas()" class="w-full flex items-center justify-between text-left cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Ver fórmulas y procedimiento paso a paso</h3>
+                <p class="text-xs text-slate-500">Ecuaciones aplicadas en tiempo real con tus datos investigados</p>
+              </div>
+            </div>
+            <i id="formula-chevron" class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200 rotate-180"></i>
+          </button>
+
+          <div id="formulas-content" class="mt-5 pt-5 border-t border-slate-100 space-y-4 text-xs sm:text-sm text-slate-700">
+            <!-- Paso 1 -->
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+              <div class="font-bold text-slate-900 mb-1">1. Energía Total Requerida (compensando pérdidas del 20%)</div>
+              <p class="text-slate-600 text-xs mb-2">Se divide el consumo diario investigado entre la eficiencia global (0.80) para compensar pérdidas en inversor, baterías y cables.</p>
+              <div class="font-mono text-xs bg-white p-2.5 rounded-lg border border-slate-200 text-slate-800" id="formula-step-1">
+                E_total = Consumo / 0.80
+              </div>
+            </div>
+
+            <!-- Paso 2 -->
+            <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/60">
+              <div class="font-bold text-amber-950 mb-1">2. Cantidad de Paneles Solares de 500 W</div>
+              <p class="text-slate-600 text-xs mb-2">Se divide la energía total requerida entre la energía que genera un panel de 500 W en un día (500 W × 5.5 HSP = 2,750 Wh/día).</p>
+              <div class="font-mono text-xs bg-white p-2.5 rounded-lg border border-amber-200 text-slate-800" id="formula-step-2">
+                N_paneles = E_total / (500 W × 5.5 h)
+              </div>
+            </div>
+
+            <!-- Paso 3 -->
+            <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/60">
+              <div class="font-bold text-emerald-950 mb-1">3. Cantidad de Baterías GEL de 12V 100 Ah</div>
+              <p class="text-slate-600 text-xs mb-2">Se calcula la capacidad del banco considerando la profundidad de descarga del 50% (DoD = 0.50) para proteger las baterías GEL.</p>
+              <div class="font-mono text-xs bg-white p-2.5 rounded-lg border border-emerald-200 text-slate-800" id="formula-step-3">
+                Capacidad_Ah = (Consumo × Días_Autonomía) / (Voltaje × 0.50)
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: PANEL DE RESULTADOS (5 columnas en desktop, sticky) -->
+      <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-6">
+        
+        <!-- Tarjeta Principal de Resultados -->
+        <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 print-shadow-none">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Paso 3 · Resultado Final</span>
+              <h2 class="text-xl font-bold text-white mt-0.5">Equipamiento Necesario</h2>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <i class="fa-solid fa-solar-panel"></i>
+            </div>
+          </div>
+
+          <!-- Tarjetas Grandes: PANELES Y BATERÍAS -->
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            
+            <!-- Resultado Paneles -->
+            <div class="bg-gradient-to-b from-amber-500/20 to-amber-500/5 border border-amber-500/30 rounded-2xl p-4 relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-amber-300 uppercase">Paneles Solares</span>
+                <i class="fa-solid fa-solar-panel text-amber-400 text-lg"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="res-panels-count" class="text-4xl sm:text-5xl font-extrabold text-white">0</span>
+                <span class="text-xs text-amber-200 font-medium">unidades</span>
+              </div>
+              <div class="mt-2 pt-2 border-t border-amber-500/20 text-xs text-slate-300 space-y-0.5">
+                <div>De <strong id="res-panel-w" class="text-white">500W</strong> c/u</div>
+                <div class="text-amber-300/90">Total: <strong id="res-total-pv-kw">0 Wp</strong></div>
+                <div class="text-[11px] text-slate-400">Exacto: <span id="res-panels-exact">0.00</span></div>
+              </div>
+            </div>
+
+            <!-- Resultado Baterías -->
+            <div class="bg-gradient-to-b from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 rounded-2xl p-4 relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-emerald-300 uppercase">Baterías GEL</span>
+                <i class="fa-solid fa-car-battery text-emerald-400 text-lg"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="res-batteries-count" class="text-4xl sm:text-5xl font-extrabold text-white">0</span>
+                <span class="text-xs text-emerald-200 font-medium">unidades</span>
+              </div>
+              <div class="mt-2 pt-2 border-t border-emerald-500/20 text-xs text-slate-300 space-y-0.5">
+                <div>De <strong id="res-bat-ah" class="text-white">100Ah</strong> (12V GEL)</div>
+                <div class="text-emerald-300/90">Banco: <strong id="res-bank-spec">12V / 0Ah</strong></div>
+                <div class="text-[11px] text-slate-400" id="res-bat-topology">Sin carga</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Alerta informativa de configuración de baterías -->
+          <div id="battery-note" class="mb-5 px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-xs text-slate-300 flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
+            <span id="battery-note-text">Ingresa los equipos investigados en el Paso 1 para calcular cuántos paneles de 500 W y baterías GEL de 100 Ah necesitas.</span>
+          </div>
+
+          <!-- Equipos Complementarios (Inversor y Controlador) -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Componentes Complementarios Sugeridos</h3>
+            
+            <!-- Inversor -->
+            <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/80 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Inversor Onda Pura</div>
+                  <div class="text-xs text-slate-400">Entrada <span id="res-inv-volt">12V</span> DC → 220V AC (margen +25%)</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="res-inverter-w" class="text-base font-bold text-sky-400">0 W</span>
+                <span class="block text-[10px] text-slate-400">Mínimo sugerido</span>
+              </div>
+            </div>
+
+            <!-- Controlador de Carga -->
+            <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/80 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Controlador MPPT</div>
+                  <div class="text-xs text-slate-400">Para banco de <span id="res-ctrl-volt">12V</span> (margen +25%)</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="res-controller-a" class="text-base font-bold text-amber-400">0 A</span>
+                <span class="block text-[10px] text-slate-400">Corriente mínima</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen Energético Inferior -->
+          <div class="mt-5 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 text-center">
+            <div class="bg-slate-950/50 rounded-xl p-2.5">
+              <span class="text-[10px] text-slate-400 uppercase block">Consumo Neto</span>
+              <span id="res-net-kwh" class="text-sm font-bold text-white">0.00 kWh</span>
+            </div>
+            <div class="bg-slate-950/50 rounded-xl p-2.5">
+              <span class="text-[10px] text-slate-400 uppercase block">Con Pérdidas</span>
+              <span id="res-gross-kwh" class="text-sm font-bold text-amber-400">0.00 kWh</span>
+            </div>
+            <div class="bg-slate-950/50 rounded-xl p-2.5">
+              <span class="text-[10px] text-slate-400 uppercase block">Autonomía</span>
+              <span id="res-autonomy-days" class="text-sm font-bold text-emerald-400">1 día</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose Visual de Consumo por Equipo -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 print-shadow-none">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-amber-500"></i>
+                ¿Qué equipo consume más?
+              </h3>
+              <p class="text-xs text-slate-500">Distribución porcentual de energía diaria (Wh/día)</p>
+            </div>
+          </div>
+
+          <div id="consumption-chart" class="space-y-3.5">
+            <!-- Barras generadas dinámicamente por JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Pie de página -->
+  <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>Práctica de Técnica Tecnológica · Dimensionamiento de Sistemas Solares Fotovoltaicos Aislados (Off-Grid).</p>
+    </div>
+  </footer>
+
+  <!-- Lógica de la Calculadora -->
+  <script>
+    // Estado inicial COMPLETAMENTE VACÍO para que los estudiantes investiguen e ingresen sus equipos
+    let appliances = [];
+    let nextId = 1;
+    let userChangedVoltage = false;
+
+    // Paleta de colores para el gráfico de consumo
+    const chartColors = [
+      'bg-amber-500',
+      'bg-emerald-500',
+      'bg-sky-500',
+      'bg-indigo-500',
+      'bg-rose-500',
+      'bg-teal-500',
+      'bg-orange-500'
+    ];
+
+    // Mostrar notificación elegante
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bgClass = type === 'success' ? 'bg-emerald-900 border-emerald-700 text-emerald-100' : 'bg-slate-900 border-slate-700 text-white';
+      const iconClass = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-info text-amber-400';
+      
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-lg text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+      toast.innerHTML = `<i class="fa-solid ${iconClass}"></i><span>${message}</span>`;
+      
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Reiniciar calculadora manteniendo los valores predeterminados de Panel 500W y Batería 100Ah GEL
+    function resetCalculator() {
+      appliances = [];
+      nextId = 1;
+      userChangedVoltage = false;
+      document.getElementById('input-hsp').value = 5.5;
+      document.getElementById('input-panel-watts').value = 500;
+      document.getElementById('input-autonomy').value = '1';
+      document.getElementById('input-voltage').value = '12';
+      document.getElementById('input-battery-type').value = '0.50';
+      document.getElementById('input-battery-ah').value = 100;
+      document.getElementById('input-efficiency').value = 80;
+      renderTable();
+      calculateSystem();
+      showToast('Lista limpiada. Equipamiento base restaurado (500W / 100Ah GEL)', 'info');
+    }
+
+    // Manejar envío del formulario para agregar un equipo investigado
+    function handleAddApplianceSubmit(event) {
+      event.preventDefault();
+      const nameInput = document.getElementById('new-name');
+      const qtyInput = document.getElementById('new-qty');
+      const wattsInput = document.getElementById('new-watts');
+      const hoursInput = document.getElementById('new-hours');
+
+      const name = nameInput.value.trim();
+      const qty = Math.max(1, parseInt(qtyInput.value) || 1);
+      const watts = Math.max(0.1, parseFloat(wattsInput.value) || 0);
+      const hours = Math.min(24, Math.max(0.1, parseFloat(hoursInput.value) || 0));
+
+      if (!name || watts <= 0 || hours <= 0) return;
+
+      appliances.push({
+        id: nextId++,
+        name,
+        qty,
+        watts,
+        hours
+      });
+
+      // Limpiar campos del formulario para el siguiente equipo
+      nameInput.value = '';
+      qtyInput.value = '1';
+      wattsInput.value = '';
+      hoursInput.value = '';
+      nameInput.focus();
+
+      renderTable();
+      calculateSystem();
+      showToast(`Equipo agregado: ${name}`, 'success');
+    }
+
+    // Eliminar equipo
+    function removeAppliance(id) {
+      appliances = appliances.filter(item => item.id !== id);
+      renderTable();
+      calculateSystem();
+    }
+
+    // Actualizar valor de un equipo cuando el usuario edita una celda inline
+    function updateAppliance(id, field, value) {
+      const item = appliances.find(a => a.id === id);
+      if (!item) return;
+
+      if (field === 'name') {
+        item.name = value;
+      } else {
+        const num = parseFloat(value);
+        item[field] = isNaN(num) || num < 0 ? 0 : num;
+      }
+
+      const rowWhCell = document.getElementById(`row-wh-${id}`);
+      if (rowWhCell) {
+        const dailyWh = item.qty * item.watts * item.hours;
+        rowWhCell.textContent = `${Math.round(dailyWh).toLocaleString('es-ES')} Wh`;
+      }
+
+      calculateSystem();
+    }
+
+    // Renderizar la tabla de equipos
+    function renderTable() {
+      const tbody = document.getElementById('appliances-tbody');
+      const emptyState = document.getElementById('empty-state');
+
+      if (appliances.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = appliances.map(item => {
+        const dailyWh = Math.round(item.qty * item.watts * item.hours);
+        return `
+          <tr class="hover:bg-slate-50/90 transition group">
+            <td class="py-2.5 px-4">
+              <input type="text" value="${escapeHtml(item.name)}" 
+                oninput="updateAppliance(${item.id}, 'name', this.value)"
+                placeholder="Nombre del equipo"
+                class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-amber-500 focus:bg-white rounded-lg px-2 py-1.5 text-slate-800 font-medium focus:outline-none transition">
+            </td>
+            <td class="py-2.5 px-2">
+              <input type="number" value="${item.qty}" min="1" step="1"
+                oninput="updateAppliance(${item.id}, 'qty', this.value)"
+                class="w-full text-center bg-slate-50 border border-slate-200 focus:border-amber-500 focus:bg-white rounded-lg px-1.5 py-1.5 text-slate-800 font-semibold focus:outline-none transition">
+            </td>
+            <td class="py-2.5 px-2">
+              <input type="number" value="${item.watts}" min="0" step="any"
+                oninput="updateAppliance(${item.id}, 'watts', this.value)"
+                class="w-full text-center bg-slate-50 border border-slate-200 focus:border-amber-500 focus:bg-white rounded-lg px-1.5 py-1.5 text-slate-800 font-semibold focus:outline-none transition">
+            </td>
+            <td class="py-2.5 px-2">
+              <input type="number" value="${item.hours}" min="0" max="24" step="0.1"
+                oninput="updateAppliance(${item.id}, 'hours', this.value)"
+                class="w-full text-center bg-slate-50 border border-slate-200 focus:border-amber-500 focus:bg-white rounded-lg px-1.5 py-1.5 text-slate-800 font-semibold focus:outline-none transition">
+            </td>
+            <td class="py-2.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap" id="row-wh-${item.id}">
+              ${dailyWh.toLocaleString('es-ES')} Wh
+            </td>
+            <td class="py-2.5 px-3 text-center no-print">
+              <button onclick="removeAppliance(${item.id})" title="Eliminar equipo"
+                class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Cálculo principal del sistema fotovoltaico
+    function calculateSystem() {
+      // 1. Sumar consumos de equipos
+      let totalWhDay = 0;
+      let maxSimultaneousWatts = 0;
+
+      const itemsWithEnergy = appliances.map(item => {
+        const powerTotal = item.qty * item.watts;
+        const energyWh = powerTotal * item.hours;
+        totalWhDay += energyWh;
+        maxSimultaneousWatts += powerTotal;
+        return { ...item, energyWh, powerTotal };
+      });
+
+      const totalKwhDay = totalWhDay / 1000;
+
+      // Actualizar barra inferior de tabla
+      document.getElementById('total-power-display').textContent = `${Math.round(maxSimultaneousWatts).toLocaleString('es-ES')} W`;
+      document.getElementById('total-wh-display').textContent = `${Math.round(totalWhDay).toLocaleString('es-ES')} Wh/día`;
+      document.getElementById('total-kwh-display').textContent = `(${totalKwhDay.toFixed(2)} kWh/día)`;
+
+      // Sugerencia automática de voltaje según consumo diario
+      let suggestedVoltage = 12;
+      if (totalWhDay > 4000 || maxSimultaneousWatts > 2500) {
+        suggestedVoltage = 48;
+      } else if (totalWhDay > 1400 || maxSimultaneousWatts > 1000) {
+        suggestedVoltage = 24;
+      }
+      document.getElementById('voltage-suggestion-badge').textContent = `Auto: ${suggestedVoltage}V`;
+
+      if (!userChangedVoltage) {
+        document.getElementById('input-voltage').value = suggestedVoltage.toString();
+      }
+
+      // 2. Obtener parámetros técnicos (predeterminados: Panel 500W, Batería 100Ah GEL)
+      const hsp = Math.max(0.5, parseFloat(document.getElementById('input-hsp').value) || 5.5);
+      const panelWatts = Math.max(10, parseFloat(document.getElementById('input-panel-watts').value) || 500);
+      const autonomyDays = parseFloat(document.getElementById('input-autonomy').value) || 1;
+      const systemVoltage = parseInt(document.getElementById('input-voltage').value) || 12;
+      const dod = parseFloat(document.getElementById('input-battery-type').value) || 0.5;
+      const batteryUnitAh = Math.max(10, parseFloat(document.getElementById('input-battery-ah').value) || 100);
+      const efficiencyPct = parseInt(document.getElementById('input-efficiency').value) || 80;
+      const efficiency = efficiencyPct / 100;
+
+      document.getElementById('efficiency-label').textContent = `${efficiencyPct}%`;
+      document.getElementById('dod-badge').textContent = `DoD: ${Math.round(dod * 100)}%`;
+
+      // Actualizar resumen rápido en Paso 2
+      document.getElementById('summary-autonomy').textContent = `${autonomyDays} ${autonomyDays === 1 ? 'día' : 'días'}`;
+      document.getElementById('summary-voltage').textContent = `${systemVoltage}V${!userChangedVoltage ? ' (Auto)' : ''}`;
+      document.getElementById('summary-eff').textContent = `${efficiencyPct}%`;
+
+      // 3. Cálculo de Paneles Solares (500W predeterminado)
+      const grossEnergyWh = totalWhDay / efficiency;
+      const singlePanelWhDay = panelWatts * hsp;
+      const exactPanels = totalWhDay > 0 ? (grossEnergyWh / singlePanelWhDay) : 0;
+      const neededPanels = Math.ceil(exactPanels);
+      const totalPvWatts = neededPanels * panelWatts;
+
+      // 4. Cálculo de Baterías (12V 100Ah GEL predeterminado)
+      const requiredBankAh = totalWhDay > 0 ? ((totalWhDay * autonomyDays) / (systemVoltage * dod)) : 0;
+      const batteriesInSeries = systemVoltage / 12;
+      const parallelStrings = requiredBankAh > 0 ? Math.ceil(requiredBankAh / batteryUnitAh) : 0;
+      const totalBatteries = parallelStrings * batteriesInSeries;
+      const actualBankAh = parallelStrings * batteryUnitAh;
+
+      // 5. Cálculo de Inversor y Controlador
+      const rawInverterW = maxSimultaneousWatts * 1.25;
+      const recommendedInverterW = rawInverterW > 0 ? Math.ceil(rawInverterW / 100) * 100 : 0;
+
+      const rawControllerA = totalPvWatts > 0 ? (totalPvWatts / systemVoltage) * 1.25 : 0;
+      const recommendedControllerA = rawControllerA > 0 ? Math.ceil(rawControllerA / 10) * 10 : 0;
+
+      // 6. Actualizar interfaz de resultados
+      document.getElementById('res-panels-count').textContent = neededPanels;
+      document.getElementById('res-panel-w').textContent = `${panelWatts}W`;
+      document.getElementById('res-total-pv-kw').textContent = totalPvWatts >= 1000 
+        ? `${(totalPvWatts / 1000).toFixed(2)} kWp` 
+        : `${totalPvWatts} Wp`;
+      document.getElementById('res-panels-exact').textContent = exactPanels.toFixed(2);
+
+      document.getElementById('res-batteries-count').textContent = totalBatteries;
+      document.getElementById('res-bat-ah').textContent = `${batteryUnitAh}Ah`;
+      document.getElementById('res-bank-spec').textContent = `${systemVoltage}V / ${actualBankAh}Ah`;
+
+      // Topología de baterías (Serie / Paralelo)
+      let topologyText = '';
+      let noteText = '';
+      if (totalBatteries === 0) {
+        topologyText = 'Sin carga aún';
+        noteText = 'Ingresa los equipos investigados en el Paso 1 para calcular cuántos paneles de 500 W y baterías GEL de 100 Ah necesitas.';
+      } else if (batteriesInSeries === 1) {
+        topologyText = `${parallelStrings} en paralelo (12V)`;
+        noteText = `Banco a 12V: Conecta las ${totalBatteries} baterías GEL de 100Ah en paralelo (+ con + y - con -) para sumar ${actualBankAh}Ah de capacidad.`;
+      } else {
+        topologyText = `${batteriesInSeries} serie × ${parallelStrings} paralelo`;
+        noteText = `Para lograr ${systemVoltage}V con baterías de 12V 100Ah GEL, conecta ${batteriesInSeries} baterías en serie${parallelStrings > 1 ? ` y ${parallelStrings} ramas en paralelo` : ''}.`;
+      }
+      document.getElementById('res-bat-topology').textContent = topologyText;
+      document.getElementById('battery-note-text').textContent = noteText;
+
+      // Inversor y Controlador
+      document.getElementById('res-inv-volt').textContent = `${systemVoltage}V`;
+      document.getElementById('res-inverter-w').textContent = `${recommendedInverterW.toLocaleString('es-ES')} W`;
+      document.getElementById('res-ctrl-volt').textContent = `${systemVoltage}V`;
+      document.getElementById('res-controller-a').textContent = `${recommendedControllerA} A`;
+
+      // Resumen inferior
+      document.getElementById('res-net-kwh').textContent = `${totalKwhDay.toFixed(2)} kWh`;
+      document.getElementById('res-gross-kwh').textContent = `${(grossEnergyWh / 1000).toFixed(2)} kWh`;
+      document.getElementById('res-autonomy-days').textContent = `${autonomyDays} ${autonomyDays === 1 ? 'día' : 'días'}`;
+
+      // 7. Actualizar fórmulas educativas en vivo
+      updateEducationalFormulas({
+        totalWhDay,
+        efficiency,
+        grossEnergyWh,
+        panelWatts,
+        hsp,
+        exactPanels,
+        neededPanels,
+        autonomyDays,
+        systemVoltage,
+        dod,
+        requiredBankAh
+      });
+
+      // 8. Renderizar gráfico de consumo por equipo
+      renderConsumptionChart(itemsWithEnergy, totalWhDay);
+    }
+
+    // Actualizar texto dinámico de las fórmulas educativas
+    function updateEducationalFormulas(data) {
+      const f1 = document.getElementById('formula-step-1');
+      const f2 = document.getElementById('formula-step-2');
+      const f3 = document.getElementById('formula-step-3');
+
+      f1.innerHTML = `E_total = ${Math.round(data.totalWhDay).toLocaleString('es-ES')} Wh / ${data.efficiency.toFixed(2)} = <strong>${Math.round(data.grossEnergyWh).toLocaleString('es-ES')} Wh/día</strong>`;
+      
+      f2.innerHTML = `N_paneles = ${Math.round(data.grossEnergyWh).toLocaleString('es-ES')} Wh / (${data.panelWatts} W × ${data.hsp} h) = ${data.exactPanels.toFixed(2)} → <strong>${data.neededPanels} paneles</strong>`;
+      
+      f3.innerHTML = `Capacidad_Ah = (${Math.round(data.totalWhDay).toLocaleString('es-ES')} Wh × ${data.autonomyDays} d) / (${data.systemVoltage} V × ${data.dod}) = <strong>${Math.round(data.requiredBankAh)} Ah</strong> (a ${data.systemVoltage}V)`;
+    }
+
+    // Renderizar gráfico de barras horizontal por equipo
+    function renderConsumptionChart(items, totalWhDay) {
+      const container = document.getElementById('consumption-chart');
+      
+      if (items.length === 0 || totalWhDay <= 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Cuando agregues los equipos investigados, aquí verás qué equipo consume mayor porcentaje de energía.</p>`;
+        return;
+      }
+
+      const sorted = [...items].sort((a, b) => b.energyWh - a.energyWh);
+
+      container.innerHTML = sorted.map((item, idx) => {
+        const pct = ((item.energyWh / totalWhDay) * 100);
+        const color = chartColors[idx % chartColors.length];
+        return `
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-medium text-slate-700 truncate max-w-[60%]">
+                ${item.qty > 1 ? `<span class="text-slate-400 font-normal">${item.qty}×</span> ` : ''}${escapeHtml(item.name)}
+              </span>
+              <span class="text-slate-600 font-semibold">
+                ${Math.round(item.energyWh).toLocaleString('es-ES')} Wh <span class="text-slate-400 font-normal">(${pct.toFixed(1)}%)</span>
+              </span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full ${color} rounded-full bar-transition" style="width: ${Math.max(2, pct)}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Mostrar / ocultar parámetros avanzados del Paso 2
+    function toggleAdvancedParams() {
+      const panel = document.getElementById('advanced-params-panel');
+      const text = document.getElementById('advanced-toggle-text');
+      const isHidden = panel.classList.toggle('hidden');
+      text.textContent = isHidden ? 'Ajustar parámetros técnicos' : 'Ocultar ajustes técnicos';
+    }
+
+    // Acordeón de fórmulas
+    function toggleFormulas() {
+      const content = document.getElementById('formulas-content');
+      const chevron = document.getElementById('formula-chevron');
+      content.classList.toggle('hidden');
+      chevron.classList.toggle('rotate-180');
+    }
+
+    // Copiar resumen al portapapeles
+    function copySummaryToClipboard() {
+      const studentName = document.getElementById('student-name').value.trim();
+      const studentCourse = document.getElementById('student-course').value.trim();
+      const panels = document.getElementById('res-panels-count').textContent;
+      const panelW = document.getElementById('res-panel-w').textContent;
+      const totalPv = document.getElementById('res-total-pv-kw').textContent;
+      const batteries = document.getElementById('res-batteries-count').textContent;
+      const batAh = document.getElementById('res-bat-ah').textContent;
+      const bankSpec = document.getElementById('res-bank-spec').textContent;
+      const inverter = document.getElementById('res-inverter-w').textContent;
+      const controller = document.getElementById('res-controller-a').textContent;
+      const consumption = document.getElementById('total-wh-display').textContent;
+
+      const headerInfo = (studentName || studentCourse)
+        ? `👤 Estudiante/Grupo: ${studentName || '-'} | Curso: ${studentCourse || '-'}\n`
+        : '';
+
+      const summaryText = 
+`☀️ REPORTE DE DIMENSIONAMIENTO SOLAR OFF-GRID
+${headerInfo}-----------------------------------------
+• Consumo Diario Investigado: ${consumption}
+• Paneles Solares: ${panels} unidades de ${panelW} (${totalPv})
+• Banco de Baterías GEL: ${batteries} baterías de 12V ${batAh} (Banco ${bankSpec})
+• Inversor Sugerido: ${inverter} (Onda Pura)
+• Controlador de Carga: ${controller} MPPT
+-----------------------------------------`;
+
+      const textArea = document.createElement('textarea');
+      textArea.value = summaryText;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Reporte copiado al portapapeles', 'success');
+      } catch (err) {
+        showToast('No se pudo copiar el reporte', 'info');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Escapar HTML para seguridad en inputs de texto
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Inicialización al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTable();
+      calculateSystem();
+    });
+  </script>
+</body>
+</html>
